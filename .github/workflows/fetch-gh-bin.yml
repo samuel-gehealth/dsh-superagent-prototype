@@ -1,0 +1,32 @@
+name: fetch-gh-bin
+on:
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download latest gh (linux amd64)
+        id: dl
+        run: |
+          set -euo pipefail
+          tag="$(curl -sf https://api.github.com/repos/cli/gh/releases/latest | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+          [ -n "$tag" ] || { echo "no tag found"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          ver="${tag#v}"
+          curl -sfL -o "$RUNNER_TEMP/gh.tar.gz" "https://github.com/cli/gh/releases/download/${tag}/gh_${ver}_linux_amd64.tar.gz"
+          ls -l "$RUNNER_TEMP/gh.tar.gz"
+      - name: Push binary to tools/gh-bin
+        run: |
+          set -euo pipefail
+          git checkout --orphan tools/gh-bin
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -not -name '.git' -not -name 'gh.tar.gz' -exec rm -rf {} +
+          cp "$RUNNER_TEMP/gh.tar.gz" ./gh.tar.gz
+          git add gh.tar.gz
+          git -c user.name="github-actions" -c user.email="actions@github.com" commit -m "gh ${TAG} linux amd64"
+          git push origin tools/gh-bin --force
+        env:
+          TAG: ${{ steps.dl.outputs.tag }}
