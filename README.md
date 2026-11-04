@@ -32,6 +32,8 @@ Read the numbered documents in order; each builds only on the ones before it.
 
 ## Development
 
+The project requires Node.js `^22.19.0 || >=24.0.0`, matching the `engines` field of `package.json`.
+
 `pnpm check` runs the typecheck, the tests and the build.
 
 ## License
